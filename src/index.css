@@ -1,0 +1,533 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  input,
+  select,
+  textarea {
+    @apply rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: #f97316;
+  }
+
+  form button[type='submit'] {
+    @apply rounded-xl text-white font-semibold shadow-sm;
+    background-color: #7B1FA2;
+  }
+
+  form button[type='submit']:hover {
+    background-color: #6A1B9A;
+  }
+
+  form button[type='submit']:disabled {
+    @apply opacity-50;
+  }
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+::-webkit-scrollbar{
+    width: 8px!important;
+    height: 8px!important;
+}
+::-webkit-scrollbar-thumb{
+    background-color: #ccc;
+}
+::-webkit-scrollbar-track{
+    background-color: #fff;
+    
+}
+
+body{
+  font-family: "Roboto", Arial, sans-serif;
+  font-optical-sizing: auto;
+  background-color: #F1F3F6 ;
+  color: #212121;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+html,
+#root{
+  overflow-x: hidden;
+}
+
+.scrollbar-hide::-webkit-scrollbar{
+  display:none;
+}
+.scrollbar-hide{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+p{
+  font-size: 13px;
+  line-height: 20px;
+}
+.container{
+    width: 90%;
+    margin: auto;
+}
+header.top-strip{
+   border-top: 1px solid rgba(0, 0, 0, 0.1);
+   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+}
+.container{
+    width: 95%;
+    margin: auto;
+}
+
+.link:hover{
+    color: #2874F0;
+}
+
+.MuiBadge-badge{
+    background-color: #FF9F00!important;
+}
+nav ul button {text-transform: capitalize!important; color: rgba(17,24,39,0.85)!important;}
+nav ul button:hover{color: #111827!important; background-color: rgba(243,244,246,1)!important;}
+
+nav ul button .MuiTouchRipple-root{background-color: transparent!important;}
+nav ul .submenu ul{padding: 6px !important;}
+nav ul .submenu li + li{border-top: 1px solid rgba(229,231,235,1) !important;}
+nav ul .submenu button{justify-content: flex-start!important; padding: 10px 12px!important; border-radius: 10px!important; background-color: transparent!important; font-weight: 500!important; letter-spacing: 0.1px;}
+nav ul .submenu button:hover{background-color: rgba(239,246,255,1)!important; color: #1d4ed8!important;}
+nav ul .submenu button:focus{background-color: transparent!important;}
+nav ul .submenu button:active{background-color: rgba(239,246,255,1)!important;}
+nav ul .submenu{visibility: hidden; z-index: 1000;}
+
+.silderhome{
+    overflow: inherit !important;
+}
+.swiper-button-next,.swiper-button-prev{
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: white;
+   border-radius: 100%;
+   width:45px;
+   height:45px;
+  min-width: 45px;
+ box-shadow: 0 1px 3px #0000001f,0 1px 2px #0000003d !important;
+}
+.swiper-button-next:after,.swiper-button-prev:after{
+    font-size: 22px!important;
+    color: #000000;
+}
+.homecatslider{
+    overflow: inherit !important;
+}
+.homecatslider .swiper-button-prev{
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+}
+.homecatslider.swiper-button-prev:after{
+    font-size: 18px !important;
+}
+.homecatslider .swiper-button-next{
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+}
+.homecatslider .item{
+    border: 1px solid rgba(0,0, 0,0.1);
+}
+.homecatslider .swiper-button-prev{
+    left: 10;
+}
+.homecatslider .swiper-button-next{
+    right: 10px;
+}
+.homecatslider .swiper-button-prev:hover{
+    background-color: #2874F0;
+}
+.homecatslider .swiper-button-prev{
+    background-color: #2874F0;
+} 
+.homecatslider .item:hover img{
+    transform: scale(1.1);
+    transition: transform 0.3s ease-in-out;
+}
+.smlbtn .swiper-button-next,.smlbtn .swiper-button-prev{
+    width: 30px!important;
+    height: 30px!important;
+    min-width: 30px !important;
+    top: 55% !important;
+}
+.smlbtn .swiper-button-next:after,.smlbtn .swiper-button-prev:after{
+    font-size: 18px !important;
+}
+
+.product-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.discount {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: red;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.product-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.product-info {
+  margin-top: 10px;
+}
+
+.brand {
+  font-size: 13px;
+  color: #666;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.rating {
+  font-size: 12px;
+  color: gold;
+}
+
+.price {
+  margin: 6px 0;
+}
+
+.price .old {
+  text-decoration: line-through;
+  color: #999;
+  margin-right: 8px;
+}
+
+.price .new {
+  color: #e53935;
+  font-weight: bold;
+}
+
+.add-btn {
+  width: 100%;
+  border: 1px solid red;
+  color: red;
+  background: transparent;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.add-btn:hover {
+  background: red;
+  color: #fff;
+}
+
+
+.product-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.discount {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: red;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.product-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.product-info {
+  margin-top: 10px;
+}
+
+.brand {
+  font-size: 13px;
+  color: #666;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.rating {
+  font-size: 12px;
+  color: gold;
+}
+
+.price {
+  margin: 6px 0;
+}
+
+.price .old {
+  text-decoration: line-through;
+  color: #999;
+  margin-right: 8px;
+}
+
+.price .new {
+  color: #e53935;
+  font-weight: bold;
+}
+
+.add-btn {
+  width: 100%;
+  border: 1px solid red;
+  color: red;
+  background: transparent;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.add-btn:hover {
+  background: red;
+  color: #fff;
+}
+
+.popular-section {
+  padding: 30px;
+}
+
+.popular-section h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.popular-section p {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.categories {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.categories button {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 5px 0;
+  position: relative;
+  color: #333;
+}
+
+.categories button.active {
+  color: red;
+  font-weight: bold;
+}
+
+.categories button.active::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: red;
+}
+
+.MuiCheckbox-root {
+  padding: 6px!important;
+}
+
+.ReactCollapse--collapse {
+  transition: height 400ms ease-in-out;
+
+}
+
+/* Swiper styles */
+.zoomContainerSliderThumbs .swiper-slide {
+  height: 130px !important;
+}
+
+/* Prev Button */
+.zoomContainerSliderThumbs .swiper-button-prev {
+  position: absolute;
+  top: 20px !important;   /* 👈 Top margin */
+  left: 50% !important;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  width: 115px;
+  height: 30px;
+  border-radius: 0 !important; /* square button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Next Button */
+.zoomContainerSliderThumbs .swiper-button-next {
+    position: absolute;
+  top: 480px !important;   /* 👈 Top margin */
+  left: 50% !important;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  width: 115px;
+  height: 30px;
+  border-radius: 0 !important; /* square button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Icon style */
+.zoomContainerSliderThumbs .swiper-button-prev:after,
+.zoomContainerSliderThumbs .swiper-button-next:after {
+  font-size: 14px;
+  color: #fff;
+}
+
+.iiz {
+  width: 100%;
+  height: 100%;
+}
+
+.iiz__img-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #fff;
+}
+
+.iiz__img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.iiz__zoom-img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+.zoomContainer .iiz img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+.productContanet .actions button{
+min-width: 40px!important;
+height: 30px!important;
+border: 1px solid rgba(0,0,0,0.2)!important;
+color: rgba(0,0,0,0.7)!important;
+background-color: transparent!important;
+padding: 5px 10px!important;
+border-radius: 4px!important;
+cursor: pointer;
+transition: all 0.3s ease-in-out;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none; 
+    margin: 0;
+}
+
+p {
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 1em;
+  color: #444;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 900;
+  color: #111;
+}
+
+.link {
+  position: relative;
+}
+
+.link::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #2563eb; /* blue-600 */
+  transition: width 0.3s ease;
+}
+
+.link:hover::after {
+  width: 100%;
+}
+.reviewScroll::-webkit-scrollbar-thumb{
+  width: 5px !important;
+}
+.reviewScroll::-webkit-scrollbar-thumb{
+  background-color: #ccc1 !important;
+}
+
+.icon-btn {
+  background: #fff;
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
+}
+.icon-btn:hover {
+  transform: scale(1.1);
+  background: #f1f1f1;
+}
+
+.cartpanel .MuiPaper-root{
+  width: 500px !important;
+}
