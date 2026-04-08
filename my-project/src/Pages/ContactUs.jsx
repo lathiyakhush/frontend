@@ -78,7 +78,7 @@ const ContactUs = () => {
                                     <FaEnvelope className="h-5 w-5 text-indigo-600 mt-1" />
                                     <div>
                                         <h3 className="font-medium text-gray-900">Email</h3>
-                                        <p className="text-gray-600">care.trozzi@gmail.com</p>
+                                        <p className="text-gray-600">care.ikolyra@gmail.com</p>
                                         <p className="text-sm text-gray-500">We respond within 24 hours</p>
                                     </div>
                                 </div>

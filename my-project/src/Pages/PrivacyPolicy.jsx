@@ -90,7 +90,7 @@ const PrivacyPolicy = () => {
                             If you have questions about this Privacy Policy, please contact us:
                         </p>
                         <ul className="list-disc list-inside text-gray-600 mb-4">
-                            <li>Email: care.trozzi@gmail.com</li>
+                            <li>Email: care.ikolyra@gmail.com</li>
                             <li>Phone: +91 90231 14886</li>
                             <li>
                                 Address: First floor, plot no 61, Bajarang industrial area, behind Lilavati party plot, Rajkot - 360002

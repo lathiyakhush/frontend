@@ -16,7 +16,9 @@ const AdBannerSection = () => {
     async function load() {
       try {
         const data = await fetchBanners({ position: "home_ad_grid" });
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+        if (!cancelled) {
+          setItems(Array.isArray(data) ? data : []);
+        }
       } catch (e) {
         if (!cancelled) setItems([]);
       }
@@ -26,6 +28,8 @@ const AdBannerSection = () => {
       cancelled = true;
     };
   }, []);
+
+  if (items.length === 0) return null;
 
   return (
     <section className="container banner-section">

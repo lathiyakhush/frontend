@@ -24,12 +24,12 @@ const TermsOfService = () => {
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">1. Acceptance of Terms</h2>
                         <p className="text-gray-600 mb-4">
-                            By accessing and using Trozzi, you accept and agree to be bound by the terms and provision of this agreement.
+                            By accessing and using Ikolyra, you accept and agree to be bound by the terms and provision of this agreement.
                         </p>
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2. Use License</h2>
                         <p className="text-gray-600 mb-4">
-                            Permission is granted to temporarily download one copy of the materials on Trozzi for personal, non-commercial transitory view only.
+                            Permission is granted to temporarily download one copy of the materials on Ikolyra for personal, non-commercial transitory view only.
                         </p>
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3. Products and Services</h2>
@@ -84,12 +84,12 @@ const TermsOfService = () => {
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">8. Intellectual Property</h2>
                         <p className="text-gray-600 mb-4">
-                            All content included on this site, such as text, graphics, logos, images, and software, is the property of Trozzi or its content suppliers.
+                            All content included on this site, such as text, graphics, logos, images, and software, is the property of Ikolyra or its content suppliers.
                         </p>
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9. Limitation of Liability</h2>
                         <p className="text-gray-600 mb-4">
-                            In no event shall Trozzi, nor any of its officers, directors and employees, be liable for anything arising out of or in any way connected with:
+                            In no event shall Ikolyra, nor any of its officers, directors and employees, be liable for anything arising out of or in any way connected with:
                         </p>
                         <ul className="list-disc list-inside text-gray-600 mb-4">
                             <li>Your use of the website</li>
@@ -99,7 +99,7 @@ const TermsOfService = () => {
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">10. Indemnification</h2>
                         <p className="text-gray-600 mb-4">
-                            You agree to indemnify and hold Trozzi and its affiliates harmless from any claim or demand, including reasonable attorneys' fees.
+                            You agree to indemnify and hold Ikolyra and its affiliates harmless from any claim or demand, including reasonable attorneys' fees.
                         </p>
 
                         <h2 className="text-xl font-semibold text-gray-900 mt-6 mb-3">11. Termination</h2>
@@ -122,7 +122,7 @@ const TermsOfService = () => {
                             Questions about the Terms of Service should be sent to us at:
                         </p>
                         <ul className="list-disc list-inside text-gray-600 mb-4">
-                            <li>Email: care.trozzi@gmail.com</li>
+                            <li>Email: care.ikolyra@gmail.com</li>
                             <li>Phone: +91 90231 14886</li>
                             <li>
                                 Address: First floor, plot no 61, Bajarang industrial area, behind Lilavati party plot, Rajkot - 360002

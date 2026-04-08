@@ -222,12 +222,18 @@ const Header = forwardRef(({ hidden = false, elevated = false }, ref) => {
                 className="flex items-center flex-shrink-0"
                 aria-label="Home"
               >
-                <img
-                  src={settings?.brandLogoUrl || "/logo.png"}
-                  alt="TROZZI"
-                  className="h-20 md:h-32 w-auto object-contain"
-                  loading="eager"
-                />
+                {settings?.brandLogoUrl ? (
+                  <img
+                    src={settings.brandLogoUrl}
+                    alt="IKOLYRA"
+                    className="h-20 md:h-32 w-auto object-contain"
+                    loading="eager"
+                  />
+                ) : (
+                  <span className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+                    IKOLYRA
+                  </span>
+                )}
               </Link>
 
               {/* Desktop Search */}

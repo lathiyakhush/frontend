@@ -38,7 +38,7 @@ const Footer = () => {
         {/* Contact */}
         <div>
           <h3 className="text-lg font-bold text-text-900 dark:text-text-100 mb-4">Contact us</h3>
-          <p className="text-text-700 dark:text-text-300 mb-1">TROZZI - Mega Super Store</p>
+          <p className="text-text-700 dark:text-text-300 mb-1">Ikolyra - Mega Super Store</p>
           <p className="text-text-700 dark:text-text-300 mb-1">507-Union Trade Centre France</p>
           <p className="text-text-700 dark:text-text-300 mb-1">sales@yourcompany.com</p>
           <p className="text-primary-600 dark:text-primary-400 font-bold mt-3 text-lg">(+91) 9876-543-210</p>

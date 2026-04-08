@@ -26,7 +26,7 @@ statutes as amended by the Information Technology Act, 2000. This electronic rec
 by a computer system and does not require any physical or digital signatures.
 This document is published in accordance with the provisions of Rule 3 (1) of the Information
 Technology (Intermediaries guidelines) Rules, 2011 that require publishing the rules and
-regulations, privacy policy and Terms of Use for access or usage of domain name https://trozzi.in/
+regulations, privacy policy and Terms of Use for access or usage of domain name https://ikolyra.in/
 ('Website'), including the related mobile site and mobile application (hereinafter referred to as
 'Platform').
 The Platform is owned by 9023114886, a company incorporated under the Companies Act, 1956
@@ -94,7 +94,7 @@ Privacy Policy
 Introduction
 This Privacy Policy describes how 9023114886 and its affiliates (collectively "9023114886, we, our, us")
 collect, use, share, protect or otherwise process your information/ personal data through our website
-https://trozzi.in/ (hereinafter referred to as Platform). Please note that you may be able to browse
+https://ikolyra.in/ (hereinafter referred to as Platform). Please note that you may be able to browse
 certain sections of the Platform without registering with us.We do not offer any product/service under
 this Platform outside India and your personal data will primarily be stored and processed in India. By
 visiting this Platform, providing your information or availing any product/service offered on the

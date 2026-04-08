@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
-import { apiClient } from '../api/client';
 import { useCart } from '../context/CartContext';
 
 const FALLBACK_IMAGE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -13,104 +12,14 @@ const SummaryPage = () => {
 
     const [paymentStatus, setPaymentStatus] = useState('unknown');
     const [paymentMessage, setPaymentMessage] = useState('');
-    const [checking, setChecking] = useState(false);
     const [cartCleared, setCartCleared] = useState(false);
     const [createdOrder, setCreatedOrder] = useState(null);
     const [fetchedOrder, setFetchedOrder] = useState(null); // Store order from backend
 
-    const getLastMerchantOrderId = () => {
-        try {
-            const sp = new URLSearchParams(window.location.search || '');
-            const candidates = [
-                sp.get('merchantOrderId'),
-                sp.get('merchantTransactionId'),
-                sp.get('merchant_order_id'),
-                sp.get('merchant_transaction_id'),
-                sp.get('transactionId'),
-            ].filter(Boolean);
-            if (candidates[0]) return String(candidates[0]);
-        } catch (_e) {
-            // ignore
-        }
-
-        try {
-            const id = localStorage.getItem('lastPaymentProviderOrderId');
-            return id ? String(id) : '';
-        } catch (_e) {
-            return '';
-        }
-    };
-
-    const refreshPhonePeStatus = async () => {
-        const merchantOrderId = getLastMerchantOrderId();
-        if (!merchantOrderId) {
-            setPaymentStatus('unknown');
-            setPaymentMessage('Payment status not available. Please try again from checkout.');
-            return;
-        }
-
-        setChecking(true);
-        try {
-            const resp = await apiClient.get(`/payments/phonepe/status/${encodeURIComponent(merchantOrderId)}`);
-            const providerState = String(resp?.data?.data?.state || resp?.data?.data?.status || resp?.data?.data?.data?.state || '').toUpperCase();
-
-            if (providerState === 'COMPLETED' || providerState === 'SUCCESS') {
-                setPaymentStatus('completed');
-                setPaymentMessage('Payment successful.');
-                
-                // Create order in database after successful payment
-                // Backend will get orderData from payment.metadata (MongoDB)
-                try {
-                    const paymentId = localStorage.getItem('lastPaymentId');
-                    if (paymentId) {
-                        console.log('[SummaryPage] Calling verify with paymentId:', paymentId);
-                        
-                        const verifyResp = await apiClient.post('/payments/verify', {
-                            paymentId,
-                            status: 'completed'
-                            // orderData will be loaded by backend from payment.metadata
-                        });
-                        console.log('[SummaryPage] Order created successfully:', verifyResp.data);
-                        
-                        // Use order details from verify response (backend returns full order)
-                        const orderFromResponse = verifyResp.data?.order;
-                        if (orderFromResponse) {
-                            console.log('[SummaryPage] Using order from verify response:', orderFromResponse);
-                            setFetchedOrder(orderFromResponse);
-                        }
-                        
-                        // Store created order info to display in UI
-                        setCreatedOrder({
-                            orderId: verifyResp.data?.orderId || paymentId,
-                            orderNumber: verifyResp.data?.orderNumber || ''
-                        });
-                    }
-                } catch (verifyError) {
-                    console.error('[SummaryPage] Failed to create order after payment:', verifyError);
-                }
-                return;
-            }
-            if (providerState === 'FAILED') {
-                setPaymentStatus('failed');
-                setPaymentMessage('Payment failed or was cancelled. Order is not placed.');
-                return;
-            }
-
-            setPaymentStatus('pending');
-            setPaymentMessage('Payment is pending. If you have paid, please wait and retry.');
-        } catch (e) {
-            const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to check payment status';
-            setPaymentStatus('unknown');
-            setPaymentMessage(String(msg));
-        } finally {
-            setChecking(false);
-        }
-    };
-
     const data = useMemo(() => {
         const state = (location && location.state) ? location.state : {};
         
-        // If location.state is empty (after PhonePe redirect), try localStorage
+        // If location.state is empty, try localStorage
         let items = Array.isArray(state.items) ? state.items : [];
         let subtotal = state.subtotal;
         let shipping = state.shipping;
@@ -123,7 +32,7 @@ const SummaryPage = () => {
         
         if (!items.length && !subtotal && !total) {
             try {
-                const saved = localStorage.getItem('trozzi_lastOrderData');
+                const saved = localStorage.getItem('ikolyra_lastOrderData');
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     items = Array.isArray(parsed?.items) ? parsed.items : [];
@@ -134,7 +43,7 @@ const SummaryPage = () => {
                     total = parsed?.total;
                     address = parsed?.address;
                     customer = parsed?.customer;
-                    paymentMethod = parsed?.paymentMethod || 'phonepe';
+                    paymentMethod = parsed?.paymentMethod || 'razorpay';
                 }
             } catch (_e) {
                 // ignore
@@ -172,15 +81,16 @@ const SummaryPage = () => {
 
     useEffect(() => {
         const pm = String(data.paymentMethod || '').toLowerCase();
-        if (pm === 'cod') {
+        if (pm === 'cod' || pm === 'razorpay') {
+            // For COD and Razorpay, payment is already completed when we reach summary
             setPaymentStatus('completed');
-            setPaymentMessage('Order placed with Cash on Delivery.');
+            setPaymentMessage(pm === 'cod' ? 'Order placed with Cash on Delivery.' : 'Payment successful!');
             return;
         }
-
-        void refreshPhonePeStatus();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data.paymentMethod]);
+        // For any other payment methods, show unknown status
+        setPaymentStatus('unknown');
+        setPaymentMessage('Unable to determine payment status.');
+    }, [data.paymentMethod, data.orderId, data.orderNumber]);
 
     useEffect(() => {
         if (paymentStatus !== 'completed') return;
@@ -188,7 +98,7 @@ const SummaryPage = () => {
 
         let mode = 'cart';
         try {
-            mode = String(localStorage.getItem('trozzy_last_checkout_mode') || 'cart').toLowerCase();
+            mode = String(localStorage.getItem('ikolyra_last_checkout_mode') || 'cart').toLowerCase();
         } catch (_e) {
             mode = 'cart';
         }
@@ -206,11 +116,11 @@ const SummaryPage = () => {
             } finally {
                 setCartCleared(true);
                 try {
-                    localStorage.removeItem('trozzy_last_checkout_mode');
+                    localStorage.removeItem('ikolyra_last_checkout_mode');
                     localStorage.removeItem('lastPaymentProviderOrderId');
                     localStorage.removeItem('lastPaymentId');
                     localStorage.removeItem('lastOrderId');
-                    localStorage.removeItem('trozzi_lastOrderData'); // Clean up order data
+                    localStorage.removeItem('ikolyra_lastOrderData'); // Clean up order data
                 } catch (_e2) {
                     // ignore
                 }
@@ -277,16 +187,15 @@ const SummaryPage = () => {
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-sm font-semibold text-gray-900">Payment not completed</div>
-                                    <div className="text-xs text-gray-600 mt-1">{paymentMessage || 'Please complete payment to place your order.'}</div>
+                                    <div className="text-sm font-semibold text-gray-900">Payment status unknown</div>
+                                    <div className="text-xs text-gray-600 mt-1">{paymentMessage || 'Please check your orders page for order status.'}</div>
                                     <div className="mt-3 flex gap-2">
                                         <button
                                             type="button"
-                                            onClick={refreshPhonePeStatus}
-                                            disabled={checking}
-                                            className="h-9 px-3 inline-flex items-center justify-center rounded-md bg-[#5A0B5A] text-white text-xs font-semibold disabled:opacity-60"
+                                            onClick={() => navigate('/orders')}
+                                            className="h-9 px-3 inline-flex items-center justify-center rounded-md bg-[#5A0B5A] text-white text-xs font-semibold"
                                         >
-                                            {checking ? 'Checking...' : 'Retry Status'}
+                                            View Orders
                                         </button>
                                         <button
                                             type="button"

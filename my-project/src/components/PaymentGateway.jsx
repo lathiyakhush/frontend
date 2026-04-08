@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import {
@@ -52,12 +52,22 @@ const PaymentGateway = ({
     const [selectedMethod, setSelectedMethod] = useState('');
     const [upiId, setUpiId] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [paymentUrl, setPaymentUrl] = useState('');
-    const [qrCode, setQrCode] = useState('');
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState('idle');
     const [paymentError, setPaymentError] = useState('');
-    const [retryCount, setRetryCount] = useState(0);
+    const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+    // Load Razorpay script on mount
+    useEffect(() => {
+        if (!window.Razorpay) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => setRazorpayLoaded(true);
+            script.onerror = () => setRazorpayLoaded(false);
+            document.body.appendChild(script);
+        } else {
+            setRazorpayLoaded(true);
+        }
+    }, []);
 
     const paymentMethods = [
         {
@@ -90,172 +100,6 @@ const PaymentGateway = ({
         }
     ];
 
-    const startPhonePeRedirectPayment = async () => {
-        const state = (location && location.state) ? location.state : {};
-
-        const normalizedItems = Array.isArray(state.items)
-            ? state.items
-                .map((it) => {
-                    const p = it?.product || {};
-                    const productId = it?.productId || p?._id || it?.product || it?._id;
-                    const name = it?.name || p?.name;
-                    const price = Number(it?.price ?? p?.price ?? 0) || 0;
-                    const quantity = Number(it?.quantity ?? 0) || 0;
-                    if (!productId || !name || !price || !quantity) return null;
-                    return {
-                        productId: String(productId),
-                        name: String(name),
-                        price,
-                        quantity,
-                        size: it?.size || it?.selectedSize,
-                        color: it?.color || it?.selectedColor,
-                    };
-                })
-                .filter(Boolean)
-            : [];
-
-        const orderData = {
-            currency: 'INR',
-            subtotal: Number(state.subtotal ?? 0) || 0,
-            shipping: Number(state.shipping ?? 0) || 0,
-            tax: Number(state.tax ?? 0) || 0,
-            codCharge: Number(state.codCharge ?? 0) || 0,
-            total: Number(state.total ?? resolved.amount ?? 0) || 0,
-            paymentMethod: 'phonepe',
-            items: normalizedItems,
-            customer: state.customer ?? resolved.customerInfo ?? null,
-            address: state.address ?? null,
-        };
-
-        const amountRupees = Math.round(Number(resolved.amount ?? orderData.total ?? 0) || 0);
-        if (!amountRupees || amountRupees <= 0) {
-            throw new Error('Invalid amount');
-        }
-
-        const returnUrl = `${window.location.origin}/summary`;
-
-        const resp = await apiClient.post('/payments/create-order', {
-            amount: amountRupees,
-            currency: 'INR',
-            provider: 'phonepe',
-            orderData,
-            returnUrl,
-        });
-
-        const data = resp?.data;
-        const nextUrl = data?.nextAction?.url;
-        if (!nextUrl) {
-            throw new Error(data?.message || data?.error || 'PhonePe initiation failed');
-        }
-
-        try {
-            localStorage.setItem('lastPaymentProviderOrderId', String(data?.providerOrderId || ''));
-            localStorage.setItem('lastPaymentId', String(data?.paymentId || ''));
-            localStorage.setItem('lastOrderId', String(data?.orderId || ''));
-            // Store full order data for retrieval after PhonePe redirect
-            localStorage.setItem('trozzi_lastOrderData', JSON.stringify({
-                items: normalizedItems,
-                subtotal: orderData.subtotal,
-                shipping: orderData.shipping,
-                tax: orderData.tax,
-                codCharge: orderData.codCharge,
-                total: orderData.total,
-                customer: orderData.customer,
-                address: orderData.address,
-                currency: orderData.currency,
-                paymentMethod: 'phonepe'
-            }));
-        } catch (_e) {
-            // ignore
-        }
-
-        window.location.assign(String(nextUrl));
-    };
-
-    const processPhonePePayment = async (paymentData) => {
-        try {
-            console.log('Processing PhonePe payment:', paymentData);
-            return {
-                success: true,
-                data: {
-                    transactionId: `PHONEPE${Date.now()}`,
-                    paymentUrl: `upi://pay?pa=phonepe&pn=Merchant&am=${paymentData.amount}&cu=INR&tn=${paymentData.orderId}`,
-                    qrCode: 'data:image/png;base64,mock-phonepe-qr-code'
-                }
-            };
-        } catch (error) {
-            console.error('PhonePe payment error:', error);
-            setPaymentError(error.message || 'Payment initiation failed');
-            return {
-                success: false,
-                message: error.message || 'Payment initiation failed'
-            };
-        }
-    };
-
-    const processPaytmPayment = async (paymentData) => {
-        try {
-            console.log('Processing Paytm payment:', paymentData);
-            return {
-                success: true,
-                data: {
-                    transactionId: `PAYTM${Date.now()}`,
-                    paymentUrl: `upi://pay?pa=paytm&pn=Merchant&am=${paymentData.amount}&cu=INR&tn=${paymentData.orderId}`,
-                    qrCode: 'data:image/png;base64,mock-paytm-qr-code'
-                }
-            };
-        } catch (error) {
-            console.error('Paytm payment error:', error);
-            setPaymentError(error.message || 'Payment initiation failed');
-            return {
-                success: false,
-                message: error.message || 'Payment initiation failed'
-            };
-        }
-    };
-
-    const processGooglePayPayment = async (paymentData) => {
-        try {
-            console.log('Processing GooglePay payment:', paymentData);
-            return {
-                success: true,
-                data: {
-                    transactionId: `GOOGLEPAY${Date.now()}`,
-                    paymentUrl: `upi://pay?pa=googlepay&pn=Merchant&am=${paymentData.amount}&cu=INR&tn=${paymentData.orderId}`,
-                    qrCode: 'data:image/png;base64,mock-googlepay-qr-code'
-                }
-            };
-        } catch (error) {
-            console.error('GooglePay payment error:', error);
-            setPaymentError(error.message || 'Payment initiation failed');
-            return {
-                success: false,
-                message: error.message || 'Payment initiation failed'
-            };
-        }
-    };
-
-    const processUPIPayment = async (paymentData) => {
-        try {
-            console.log('Processing UPI payment:', paymentData);
-            return {
-                success: true,
-                data: {
-                    transactionId: `UPI${Date.now()}`,
-                    paymentUrl: `upi://pay?pa=${paymentData.upiId}&pn=Merchant&am=${paymentData.amount}&cu=INR&tn=${paymentData.orderId}`,
-                    qrCode: 'data:image/png;base64,mock-upi-qr-code'
-                }
-            };
-        } catch (error) {
-            console.error('UPI payment error:', error);
-            setPaymentError(error.message || 'Payment initiation failed');
-            return {
-                success: false,
-                message: error.message || 'Payment initiation failed'
-            };
-        }
-    };
-
     const handlePayment = async () => {
         if (!selectedMethod || (selectedMethod === 'upi' && !upiId.trim())) {
             return;
@@ -267,63 +111,168 @@ const PaymentGateway = ({
             return;
         }
 
+        if (!razorpayLoaded || !window.Razorpay) {
+            setPaymentError('Payment system not loaded. Please try again.');
+            return;
+        }
+
         setIsProcessing(true);
         setPaymentStatus('processing');
-        setPaymentError('');
 
         try {
-            if (selectedMethod === 'phonepe') {
-                await startPhonePeRedirectPayment();
-                return;
+            const state = (location && location.state) ? location.state : {};
+
+            const normalizedItems = Array.isArray(state.items)
+                ? state.items
+                    .map((it) => {
+                        const p = it?.product || {};
+                        const productId = it?.productId || p?._id || it?.product || it?._id;
+                        const name = it?.name || p?.name;
+                        const price = Number(it?.price ?? p?.price ?? 0) || 0;
+                        const quantity = Number(it?.quantity ?? 0) || 0;
+                        if (!productId || !name || !price || !quantity) return null;
+                        return {
+                            productId: String(productId),
+                            name: String(name),
+                            price,
+                            quantity,
+                            size: it?.size || it?.selectedSize,
+                            color: it?.color || it?.selectedColor,
+                        };
+                    })
+                    .filter(Boolean)
+                : [];
+
+            const orderData = {
+                currency: 'INR',
+                subtotal: Number(state.subtotal ?? 0) || 0,
+                shipping: Number(state.shipping ?? 0) || 0,
+                tax: Number(state.tax ?? 0) || 0,
+                codCharge: Number(state.codCharge ?? 0) || 0,
+                total: Number(state.total ?? resolved.amount ?? 0) || 0,
+                paymentMethod: selectedMethod,
+                items: normalizedItems,
+                customer: state.customer ?? resolved.customerInfo ?? null,
+                address: state.address ?? null,
+            };
+
+            const amountRupees = Math.round(Number(resolved.amount ?? orderData.total ?? 0) || 0);
+
+            // Create order on backend
+            const resp = await apiClient.post('/payments/create-order', {
+                amount: amountRupees,
+                currency: 'INR',
+                provider: 'razorpay',
+                orderData,
+            });
+
+            const data = resp?.data;
+            const razorpayOrderId = data?.razorpayOrderId;
+            const razorpayKeyId = data?.razorpayKeyId;
+
+            if (!razorpayOrderId || !razorpayKeyId) {
+                throw new Error(data?.message || data?.error || 'Failed to create order');
             }
 
-            let response;
-            switch (selectedMethod) {
-                case 'phonepe':
-                    response = await processPhonePePayment({
-                        amount: resolved.amount,
-                        orderId: resolved.orderId,
-                        customerInfo: resolved.customerInfo,
-                        upiId
-                    });
-                    break;
-                case 'paytm':
-                    response = await processPaytmPayment({
-                        amount: resolved.amount,
-                        orderId: resolved.orderId,
-                        customerInfo: resolved.customerInfo
-                    });
-                    break;
-                case 'googlepay':
-                    response = await processGooglePayPayment({
-                        amount: resolved.amount,
-                        orderId: resolved.orderId,
-                        customerInfo: resolved.customerInfo
-                    });
-                    break;
-                case 'upi':
-                    response = await processUPIPayment({
-                        amount: resolved.amount,
-                        orderId: resolved.orderId,
-                        customerInfo: resolved.customerInfo,
-                        upiId
-                    });
-                    break;
-                default:
-                    throw new Error('Unsupported payment method');
+            // Save payment info
+            try {
+                localStorage.setItem('lastPaymentId', String(data?.paymentId || ''));
+                localStorage.setItem('lastOrderId', String(data?.orderId || ''));
+                localStorage.setItem('ikolyra_lastOrderData', JSON.stringify(orderData));
+            } catch (_e) {
+                // ignore
             }
 
-            if (response.success) {
-                setPaymentUrl(response.data.paymentUrl);
-                setQrCode(response.data.qrCode);
-                setShowPaymentModal(true);
-                setPaymentStatus('awaiting');
+            const customer = orderData.customer;
 
-                // Start polling for payment status
-                pollPaymentStatus(response.data.transactionId);
-            } else {
-                throw new Error(response.message || 'Payment initiation failed');
-            }
+            // Configure Razorpay options
+            const options = {
+                key: razorpayKeyId,
+                amount: amountRupees * 100,
+                currency: 'INR',
+                name: 'Ikolyra',
+                description: `${selectedMethod.toUpperCase()} Payment`,
+                order_id: razorpayOrderId,
+                prefill: {
+                    name: customer?.name || '',
+                    email: customer?.email || '',
+                    contact: customer?.phone || '',
+                    method: selectedMethod === 'upi' ? 'upi' : selectedMethod === 'paytm' ? 'paytm' : 'upi',
+                    vpa: selectedMethod === 'upi' ? upiId : undefined,
+                },
+                theme: {
+                    color: '#5A0B5A',
+                },
+                config: {
+                    display: {
+                        blocks: {
+                            upi: {
+                                name: 'UPI',
+                                instruments: [{ method: 'upi' }]
+                            },
+                            cards: {
+                                name: 'Cards',
+                                instruments: [{ method: 'card' }]
+                            },
+                            netbanking: {
+                                name: 'Net Banking',
+                                instruments: [{ method: 'netbanking' }]
+                            },
+                            wallet: {
+                                name: 'Wallet',
+                                instruments: [{ method: 'wallet' }]
+                            }
+                        },
+                        sequence: ['block.upi', 'block.cards', 'block.netbanking', 'block.wallet'],
+                        preferences: {
+                            show_default_blocks: true
+                        }
+                    }
+                },
+                modal: {
+                    ondismiss: function() {
+                        setIsProcessing(false);
+                        setPaymentStatus('idle');
+                        safeOnPaymentFailure('Payment cancelled by user');
+                    }
+                },
+                handler: async function (response) {
+                    // Payment success
+                    try {
+                        const verifyResp = await apiClient.post('/payments/verify', {
+                            paymentId: data?.paymentId,
+                            status: 'completed',
+                            razorpayOrderId: response.razorpay_order_id,
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpaySignature: response.razorpay_signature,
+                            orderData,
+                        });
+
+                        const verifyData = verifyResp?.data;
+                        setPaymentStatus('completed');
+                        safeOnPaymentSuccess({
+                            orderId: verifyData?.orderId,
+                            orderNumber: verifyData?.orderNumber,
+                            paymentId: verifyData?.paymentId,
+                            status: verifyData?.status,
+                        });
+                    } catch (verifyError) {
+                        console.error('Verification error:', verifyError);
+                        setPaymentStatus('failed');
+                        setPaymentError('Payment successful but verification failed. Please contact support.');
+                        safeOnPaymentFailure('Verification failed');
+                    }
+                },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                setPaymentStatus('failed');
+                setPaymentError('Payment failed: ' + (response.error?.description || 'Unknown error'));
+                safeOnPaymentFailure('Payment failed');
+            });
+            rzp.open();
+
         } catch (error) {
             console.error('Payment error:', error);
             setPaymentStatus('failed');
@@ -334,114 +283,9 @@ const PaymentGateway = ({
         }
     };
 
-    const pollPaymentStatus = async (transactionId) => {
-        const pollInterval = setInterval(async () => {
-            try {
-                const response = await fetch(`/api/payments/status/${transactionId}`).then(res => res.json());
-
-                if (response.success) {
-                    const { status } = response.data;
-                    let newStatus;
-
-                    // Map PhonePe status codes to your system
-                    switch (status) {
-                        case 'PAYMENT_SUCCESS':
-                            newStatus = 'completed';
-                            break;
-                        case 'PAYMENT_PENDING':
-                            newStatus = 'processing';
-                            break;
-                        case 'PAYMENT_FAILED':
-                            newStatus = 'failed';
-                            break;
-                        case 'AUTHORIZATION_FAILED':
-                            newStatus = 'failed';
-                            break;
-                        case 'AUTO_REFUNDED':
-                            newStatus = 'refunded';
-                            break;
-                        default:
-                            newStatus = 'pending';
-                    }
-
-                    // Update payment status in database
-                    console.log('Updating payment status:', {
-                        merchantTransactionId: transactionId,
-                        status: newStatus,
-                        amount: amount / 100, // Convert to rupees
-                        transactionId,
-                        phonepeResponse: response.data
-                    });
-
-                    setPaymentStatus(newStatus);
-                    setRetryCount(0);
-
-                    if (newStatus === 'completed') {
-                        clearInterval(pollInterval);
-                        setPaymentStatus('success');
-                        setTimeout(() => {
-                            setShowPaymentModal(false);
-                            safeOnPaymentSuccess(response.data);
-                        }, 2000);
-                    } else if (newStatus === 'failed') {
-                        clearInterval(pollInterval);
-                        setPaymentStatus('failed');
-                        setTimeout(() => {
-                            setShowPaymentModal(false);
-                            safeOnPaymentFailure('Payment failed');
-                        }, 2000);
-                    }
-                }
-            } catch (error) {
-                console.error('Error polling payment status:', error);
-                setRetryCount(prev => prev + 1);
-                if (retryCount >= 3) {
-                    clearInterval(pollInterval);
-                    setPaymentStatus('timeout');
-                    setShowPaymentModal(false);
-                    safeOnPaymentFailure('Payment timeout. Please try again.');
-                }
-            }
-        }, 3000);
-
-        // Stop polling after 5 minutes
-        setTimeout(() => {
-            clearInterval(pollInterval);
-            if (paymentStatus === 'awaiting') {
-                setPaymentStatus('timeout');
-                setShowPaymentModal(false);
-                safeOnPaymentFailure('Payment timeout. Please check your payment app.');
-            }
-        }, 300000);
-    };
-
-    const getStatusIcon = () => {
-        switch (paymentStatus) {
-            case 'processing': return <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent"></div>;
-            case 'awaiting': return <div className="animate-pulse"><FiCheck className="w-8 h-8 text-orange-500" /></div>;
-            case 'success': return <FiCheck className="w-8 h-8 text-green-500" />;
-            case 'failed': return <FiAlertCircle className="w-8 h-8 text-red-500" />;
-            case 'timeout': return <FiAlertCircle className="w-8 h-8 text-orange-500" />;
-            default: return null;
-        }
-    };
-
-    const getStatusMessage = () => {
-        switch (paymentStatus) {
-            case 'processing': return 'Processing payment...';
-            case 'awaiting': return 'Payment initiated. Please complete in your payment app.';
-            case 'success': return 'Payment successful! Redirecting...';
-            case 'failed': return 'Payment failed. Please try again.';
-            case 'timeout': return 'Payment timeout. Please check your payment app.';
-            default: return '';
-        }
-    };
-
     const handleRetry = () => {
-        setShowPaymentModal(false);
         setPaymentStatus('idle');
         setPaymentError('');
-        setRetryCount(0);
     };
 
     return (
@@ -449,7 +293,7 @@ const PaymentGateway = ({
             <div className="sm:hidden flex items-center justify-between mb-2">
                 <button
                     type="button"
-                    onClick={() => navigate(-1)}
+                    onClick={safeOnCancel}
                     className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200"
                 >
                     <FiX className="text-gray-700" />
@@ -488,16 +332,6 @@ const PaymentGateway = ({
                 </div>
             </div>
 
-            <div className="sm:hidden bg-[#F5EAF4] border border-[#E7CFE6] rounded-xl p-3 flex gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/60 border border-white/50 flex items-center justify-center">
-                    <span className="text-[#5A0B5A] text-[12px] font-bold">★</span>
-                </div>
-                <div className="min-w-0">
-                    <div className="text-[13px] font-bold text-gray-900">Pay online & get EXTRA ₹33 off</div>
-                    <div className="text-[12px] text-gray-600 mt-0.5">Valid for UPI payments only</div>
-                </div>
-            </div>
-
             <div className="sm:hidden bg-white border border-gray-200 rounded-xl p-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -506,7 +340,7 @@ const PaymentGateway = ({
                         </div>
                         <div>
                             <div className="text-[13px] font-bold text-gray-900">100% SAFE PAYMENTS</div>
-                            <div className="text-[12px] text-gray-600">SSL encrypted, secure payment gateway</div>
+                            <div className="text-[12px] text-gray-600">Razorpay Secure Payment Gateway</div>
                         </div>
                     </div>
                     <span className="px-2 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">Verified</span>
@@ -588,6 +422,30 @@ const PaymentGateway = ({
                     </div>
                 )}
 
+                {/* Status Display */}
+                {paymentStatus === 'processing' && (
+                    <div className="mt-4 flex items-center justify-center gap-2 py-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#5A0B5A] border-t-transparent"></div>
+                        <span className="text-sm text-gray-600">Processing...</span>
+                    </div>
+                )}
+
+                {paymentStatus === 'failed' && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                        <div className="flex items-center gap-2">
+                            <FiAlertCircle className="w-5 h-5 text-red-600" />
+                            <p className="text-sm text-red-700">Payment failed. Please try again.</p>
+                        </div>
+                        <button
+                            onClick={handleRetry}
+                            className="mt-2 w-full bg-[#5A0B5A] hover:bg-[#4a094a] text-white font-semibold py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                        >
+                            <FiRefreshCw className="w-4 h-4" />
+                            Try Again
+                        </button>
+                    </div>
+                )}
+
                 <button
                     onClick={handlePayment}
                     disabled={!selectedMethod || (selectedMethod === 'upi' && !upiId.trim()) || isProcessing}
@@ -620,98 +478,6 @@ const PaymentGateway = ({
                     </button>
                 </div>
             </div>
-
-            {/* Payment Status Modal */}
-            {showPaymentModal && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[3000]">
-                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-extrabold text-gray-900">Complete payment</h3>
-                            <button
-                                onClick={() => {
-                                    setShowPaymentModal(false);
-                                    setPaymentStatus('idle');
-                                    setPaymentError('');
-                                }}
-                                className="text-gray-500 hover:text-gray-900"
-                            >
-                                <FiX className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="text-center space-y-4">
-                            {getStatusIcon()}
-                            <p className="text-sm text-gray-600">
-                                {getStatusMessage()}
-                            </p>
-
-                            {qrCode && (
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium">Scan QR Code</p>
-                                    <img
-                                        src={qrCode}
-                                        alt="Payment QR Code"
-                                        className="w-48 h-48 mx-auto border border-gray-200 rounded-2xl"
-                                    />
-                                </div>
-                            )}
-
-                            {paymentUrl && paymentStatus === 'awaiting' && (
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium">Or click to pay</p>
-                                    <a
-                                        href={paymentUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors"
-                                    >
-                                        Open Payment App
-                                    </a>
-                                </div>
-                            )}
-
-                            {paymentStatus === 'success' && (
-                                <div className="text-green-600 dark:text-green-400">
-                                    <FiCheck className="w-16 h-16 mx-auto mb-2" />
-                                    <p className="font-medium">Payment Successful!</p>
-                                </div>
-                            )}
-
-                            {(paymentStatus === 'failed' || paymentStatus === 'timeout') && (
-                                <div className="text-red-600 dark:text-red-400">
-                                    <FiAlertCircle className="w-16 h-16 mx-auto mb-2" />
-                                    <p className="font-medium">
-                                        {paymentStatus === 'timeout' ? 'Payment Timeout' : 'Payment Failed'}
-                                    </p>
-                                    {paymentError && (
-                                        <p className="text-sm text-red-600 dark:text-red-400 mt-2">{paymentError}</p>
-                                    )}
-                                    <div className="mt-4 space-y-2">
-                                        <button
-                                            onClick={handleRetry}
-                                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors"
-                                        >
-                                            <FiRefreshCw className="w-4 h-4 mr-2 inline" />
-                                            Try Again
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowPaymentModal(false);
-                                                setPaymentStatus('idle');
-                                                setPaymentError('');
-                                                safeOnCancel();
-                                            }}
-                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-2.5 px-4 rounded-xl transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

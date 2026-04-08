@@ -16,7 +16,9 @@ const Homeslider = () => {
     async function load() {
       try {
         const data = await fetchBanners({ position: 'home_hero' });
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+        if (!cancelled) {
+          setItems(Array.isArray(data) ? data : []);
+        }
       } catch (e) {
         if (!cancelled) setItems([]);
       }
@@ -26,6 +28,8 @@ const Homeslider = () => {
       cancelled = true;
     };
   }, []);
+
+  if (items.length === 0) return null;
 
   return (
     <>

@@ -107,7 +107,7 @@ const RefundPolicy = () => {
                             To return an item, follow these steps:
                         </p>
                         <ol className="list-decimal list-inside text-gray-600 mb-4">
-                            <li>Contact our customer support at care.trozzi@gmail.com</li>
+                            <li>Contact our customer support at care.ikolyra@gmail.com</li>
                             <li>Provide your order number and reason for return</li>
                             <li>We will send you a return authorization and shipping instructions</li>
                             <li>Pack the item securely in original packaging</li>
@@ -142,7 +142,7 @@ const RefundPolicy = () => {
                             For any questions about our refund policy, please contact:
                         </p>
                         <ul className="list-disc list-inside text-gray-600 mb-4">
-                            <li>Email: care.trozzi@gmail.com</li>
+                            <li>Email: care.ikolyra@gmail.com</li>
                             <li>Phone: +91 90231 14886 (Mon-Sat, 9 AM - 6 PM IST)</li>
                             <li>WhatsApp: +91 90231 14886</li>
                         </ul>

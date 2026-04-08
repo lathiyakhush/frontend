@@ -45,12 +45,16 @@ const LoginPage = () => {
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-[0_10px_30px_rgba(0,0,0,0.08)] p-6 sm:p-8">
                     <div className="text-center">
                         <div className="inline-flex items-center justify-center h-40 w-40 rounded-2xl bg-white">
-                            <img
-                                src={settings?.brandLogoUrl || "/logo.png"}
-                                alt="TROZZI"
-                                className="h-36 w-36 object-contain"
-                                loading="eager"
-                            />
+                            {settings?.brandLogoUrl ? (
+                                <img
+                                    src={settings.brandLogoUrl}
+                                    alt="IKOLYRA"
+                                    className="h-36 w-36 object-contain"
+                                    loading="eager"
+                                />
+                            ) : (
+                                <span className="text-3xl font-bold text-gray-900">IKOLYRA</span>
+                            )}
                         </div>
                         <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
                             Sign in

@@ -79,7 +79,7 @@ const CheckoutPage = () => {
         country: 'India',
 
         // Payment
-        paymentMethod: 'phonepe',
+        paymentMethod: 'razorpay',
     });
 
     const isCodEligible = useMemo(() => {
@@ -95,7 +95,7 @@ const CheckoutPage = () => {
 
     useEffect(() => {
         if (!isCodEligible && formData.paymentMethod === 'cod') {
-            setFormData((prev) => ({ ...prev, paymentMethod: 'phonepe' }));
+            setFormData((prev) => ({ ...prev, paymentMethod: 'razorpay' }));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isCodEligible]);
@@ -352,7 +352,7 @@ const CheckoutPage = () => {
             tax: taxAmount,
             codCharge: 0,
             total: payableAmount,
-            paymentMethod: 'phonepe',
+            paymentMethod: 'razorpay',
             items: orderItems,
             customer,
             address,
@@ -364,8 +364,6 @@ const CheckoutPage = () => {
             return;
         }
 
-        const returnUrl = `${window.location.origin}/summary`;
-
         setLoading(true);
         try {
             try { await fetchCart(); } catch (_e) {}
@@ -374,44 +372,30 @@ const CheckoutPage = () => {
                 try { sessionStorage.removeItem('trozzy_buy_now'); } catch (_e2) {}
             }
 
-            const resp = await apiClient.post('/payments/create-order', {
-                amount: amountRupees,
-                currency: 'INR',
-                provider: 'phonepe',
-                orderData,
-                returnUrl,
-            });
-
-            const data = resp?.data;
-            const nextUrl = data?.nextAction?.url;
-            if (!nextUrl) {
-                throw new Error(data?.message || data?.error || 'PhonePe initiation failed');
-            }
-
-            try {
-                localStorage.setItem('lastPaymentProviderOrderId', String(data?.providerOrderId || ''));
-                localStorage.setItem('lastPaymentId', String(data?.paymentId || ''));
-                localStorage.setItem('lastOrderId', String(data?.orderId || ''));
-            } catch (_e) {
-                // ignore
-            }
-
-            window.location.assign(String(nextUrl));
-        } catch (e) {
-            const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to initiate PhonePe payment';
-            setError(String(msg));
+            // Navigate to PaymentGateway with order data
+            const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
+            
             navigate('/payment', {
                 state: {
-                    items: normalizedItems,
+                    amount: payableAmount,
+                    items: orderItems,
                     subtotal: subtotalAmount,
                     shipping: SHIPPING_AMOUNT,
                     tax: taxAmount,
+                    codCharge: 0,
                     total: payableAmount,
-                    amount: payableAmount,
-                    customer,
-                    address,
+                    customer: {
+                        name: customerName,
+                        email: formData.email,
+                        phone: formData.phone,
+                    },
+                    address: selectedAddress,
                 }
             });
+
+        } catch (e) {
+            const msg = e?.message || 'Failed to proceed to payment';
+            setError(String(msg));
         } finally {
             setLoading(false);
         }
@@ -619,28 +603,28 @@ const CheckoutPage = () => {
                                 <div className="text-[14px] sm:text-[15px] font-bold text-gray-900 mb-3">Payment Method</div>
                                 
                                 <div className="flex flex-col gap-2.5 sm:gap-3">
-                                    {/* PhonePe Payment Option */}
+                                    {/* Razorpay Payment Option */}
                                     <button
                                         type="button"
-                                        onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'phonepe' }))}
-                                        className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-[10px] border transition-all duration-200 ${formData.paymentMethod === 'phonepe' ? 'border-[#5A0B5A] bg-[#F5EAF4] ring-1 ring-[#5A0B5A]/20' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                                        onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'razorpay' }))}
+                                        className={`w-full flex items-center gap-3 p-3 sm:p-4 rounded-[10px] border transition-all duration-200 ${formData.paymentMethod === 'razorpay' ? 'border-[#5A0B5A] bg-[#F5EAF4] ring-1 ring-[#5A0B5A]/20' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                                     >
                                         {/* Icon */}
-                                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#5f259f] flex items-center justify-center flex-shrink-0">
+                                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#1F51FF] flex items-center justify-center flex-shrink-0">
                                             <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
                                             </svg>
                                         </div>
                                         
                                         {/* Text Content */}
                                         <div className="flex-1 min-w-0 text-left">
-                                            <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">Pay Online (UPI)</div>
-                                            <div className="text-[11px] sm:text-[12px] text-gray-500 mt-0.5">PhonePe, GPay, Paytm</div>
+                                            <div className="text-[13px] sm:text-[14px] font-bold text-gray-900">Pay with Razorpay</div>
+                                            <div className="text-[11px] sm:text-[12px] text-gray-500 mt-0.5">Cards, UPI, Net Banking</div>
                                         </div>
                                         
                                         {/* Selection Indicator */}
-                                        <div className={`w-5 h-5 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${formData.paymentMethod === 'phonepe' ? 'border-[#5A0B5A] bg-[#5A0B5A]' : 'border-gray-300'}`}>
-                                            {formData.paymentMethod === 'phonepe' && (
+                                        <div className={`w-5 h-5 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${formData.paymentMethod === 'razorpay' ? 'border-[#5A0B5A] bg-[#5A0B5A]' : 'border-gray-300'}`}>
+                                            {formData.paymentMethod === 'razorpay' && (
                                                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                 </svg>
@@ -704,11 +688,11 @@ const CheckoutPage = () => {
                                     <div className="mt-2 space-y-2">
                                         <button
                                             type="button"
-                                            onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'phonepe' }))}
-                                            className={`w-full text-left rounded-xl border px-3 py-2.5 transition ${formData.paymentMethod === 'phonepe' ? 'border-[#5A0B5A] ring-1 ring-[#5A0B5A]/30 bg-[#F5EAF4]' : 'border-gray-200 bg-white'}`}
+                                            onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'razorpay' }))}
+                                            className={`w-full text-left rounded-xl border px-3 py-2.5 transition ${formData.paymentMethod === 'razorpay' ? 'border-[#5A0B5A] ring-1 ring-[#5A0B5A]/30 bg-[#F5EAF4]' : 'border-gray-200 bg-white'}`}
                                         >
-                                            <div className="text-[13px] font-extrabold text-gray-900">Pay Online (UPI)</div>
-                                            <div className="text-[12px] text-gray-600">PhonePe payment</div>
+                                            <div className="text-[13px] font-extrabold text-gray-900">Pay with Razorpay</div>
+                                            <div className="text-[12px] text-gray-600">Secure payment gateway</div>
                                         </button>
 
                                         <button

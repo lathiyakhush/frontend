@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FaGem, FaTshirt, FaUtensils, FaHome, FaPlug, FaHeart } from 'react-icons/fa'
 import Homeslider from '../../components/Homeslider'
 import Adsbennerslider from '../../components/Adsbannerslider'
 import PopularProducts from '../../components/product/popularproduct'
@@ -53,21 +52,6 @@ const Home = () => {
     }
   }, [apiCategories.length])
 
-  const resolveCategoryToParam = useMemo(() => {
-    const list = Array.isArray(apiCategories) ? apiCategories : []
-    return (name) => {
-      const raw = String(name || '').trim()
-      if (!raw) return ''
-      const rawLower = raw.toLowerCase()
-      const match = list.find((c) => {
-        const n = String(c?.name || c?.title || '').trim().toLowerCase()
-        const slug = String(c?.slug || '').trim().toLowerCase()
-        return (n && n === rawLower) || (slug && slug === rawLower)
-      })
-      return String(match?.id || match?._id || raw)
-    }
-  }, [apiCategories])
-
   const categories = useMemo(() => {
     const list = Array.isArray(apiCategories) ? apiCategories : []
 
@@ -77,86 +61,28 @@ const Home = () => {
       { color: 'border-pink-600', bg: 'bg-pink-50' },
       { color: 'border-green-600', bg: 'bg-green-50' },
       { color: 'border-orange-600', bg: 'bg-orange-50' },
+      { color: 'border-red-600', bg: 'bg-red-50' },
     ]
 
-    const apiItems = list
+    return list
       .filter((c) => c && (c.active === undefined || Boolean(c.active)))
       .filter((c) => !c.parentId)
       .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
       .map((c, index) => {
         const rawName = String(c?.name || c?.title || '').trim()
         const id = String(c?.id || c?._id || rawName)
-        const url = String(c?.imageUrl || c?.image || '').trim()
-        const img = url ? (url.startsWith('http') ? url : `http://localhost:5050${url}`) : ''
         const colorPair = COLORS[index % COLORS.length]
 
         return {
           name: rawName || id,
           icon: null,
-          img,
+          img: String(c?.imageUrl || '').trim(),
           color: colorPair.color,
           bg: colorPair.bg,
           to: id ? `/ProductListing?category=${encodeURIComponent(id)}` : '/ProductListing',
         }
       })
-
-    // Always show default 6 categories (ignore API count)
-    const buildTo = (name) => {
-      const param = resolveCategoryToParam(name)
-      return param ? `/ProductListing?category=${encodeURIComponent(param)}` : '/ProductListing'
-    }
-
-    return [
-      {
-        name: 'Kitchen',
-        icon: FaUtensils,
-        img: 'https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcRFdI3ATGFPb2lunhXsbYK6wK0olgpZpdLOta5nANWUicn5JDx6727CDwv1fPr2K_bIeEb1lcTw3AHHbkBXMELGMcM2V0YGqXASHk9yFGTjUW6rv840QKcflg',
-        color: 'border-blue-600',
-        bg: 'bg-blue-50',
-        to: buildTo('Kitchen'),
-      },
-      {
-        name: 'Home & Decor',
-        icon: FaHome,
-        img: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=200&h=200&fit=crop',
-        color: 'border-orange-600',
-        bg: 'bg-orange-50',
-        to: buildTo('Home & Decor'),
-      },
-      {
-        name: 'Jewellery',
-        icon: FaGem,
-        img: 'https://stylia.in/cdn/shop/files/a_remove_crease_from_t_2.png?v=1767615306&width=800',
-        color: 'border-purple-600',
-        bg: 'bg-purple-50',
-        to: buildTo('Jewellery'),
-      },
-      {
-        name: 'Fashion',
-        icon: FaTshirt,
-        img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQE2Dz7mEITlAqH6kezKmNnjzecmOa73VOiaw&s',
-        color: 'border-pink-600',
-        bg: 'bg-pink-50',
-        to: buildTo('Fashion'),
-      },
-      {
-        name: 'Electronics',
-        icon: FaPlug,
-        img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9D8i3L8V7yRq8vR1rE3vH9fG5jK2mN4pQwR&s',
-        color: 'border-green-600',
-        bg: 'bg-green-50',
-        to: buildTo('Electronics'),
-      },
-      {
-        name: 'Beauty',
-        icon: FaHeart,
-        img: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8W5E7F8G9H0I1J2K3L4M5N6O7P8Q9R0S1T2&s',
-        color: 'border-red-600',
-        bg: 'bg-red-50',
-        to: buildTo('Beauty'),
-      },
-    ]
-  }, [apiCategories, resolveCategoryToParam])
+  }, [apiCategories])
 
   return (
     <div className="home-page bg-[#f7f7f7] mt-24 lg:mt-40">
@@ -205,8 +131,10 @@ const Home = () => {
                         style={{ aspectRatio: '1/1' }}
                         loading="eager"
                       />
-                    ) : (
+                    ) : Icon ? (
                       <Icon className="text-gray-800 text-lg sm:text-xl" />
+                    ) : (
+                      <div className="text-gray-400 text-lg sm:text-xl">📁</div>
                     )}
                   </div>
                   <div className="mt-2 text-[12px] sm:text-sm font-semibold text-gray-900 text-center">
