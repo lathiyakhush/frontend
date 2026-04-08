@@ -2,15 +2,10 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const crypto = require('crypto');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const Banner = require('../models/banner');
+const { uploadImage: uploadImageToCloudinary } = require('../services/cloudinaryService');
 
 const { authenticateAdmin, requireAdmin } = require('../middleware/adminAuth');
-
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
-
-const s3 = new S3Client({ region: AWS_REGION });
 
 router.use(authenticateAdmin, requireAdmin);
 
@@ -73,27 +68,20 @@ const upload = multer({
     }
 });
 
-async function uploadBannerToS3(file) {
-    if (!AWS_REGION || !AWS_S3_BUCKET) {
-        throw new Error('Missing AWS configuration (AWS_REGION, AWS_S3_BUCKET)');
+async function uploadBannerToCloudinary(file) {
+    if (!file || !file.buffer || !file.originalname) {
+        throw new Error('Invalid file for upload');
     }
 
-    const ext = (file.originalname || '').split('.').pop() || 'bin';
-    const random = crypto.randomBytes(12).toString('hex');
-    const key = `uploads/banners/${Date.now()}-${random}.${ext}`;
-
-    await s3.send(
-        new PutObjectCommand({
-            Bucket: AWS_S3_BUCKET,
-            Key: key,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-        })
-    );
+    const upload = await uploadImageToCloudinary({
+        buffer: file.buffer,
+        filename: file.originalname,
+        folder: 'banners',
+    });
 
     return {
-        key,
-        url: `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`,
+        key: upload.publicId,
+        url: upload.url,
     };
 }
 
@@ -183,8 +171,8 @@ router.post('/', upload.single('image'), async (req, res) => {
         let imageUrl = req.body.image; // For external URLs
 
         if (req.file) {
-            const s3Obj = await uploadBannerToS3(req.file);
-            imageUrl = s3Obj.url;
+            const uploaded = await uploadBannerToCloudinary(req.file);
+            imageUrl = uploaded.url;
         }
 
         if (!imageUrl) {
@@ -243,8 +231,8 @@ router.put('/:id', upload.single('image'), async (req, res) => {
         if (order !== undefined) banner.order = parseInt(order);
 
         if (req.file) {
-            const s3Obj = await uploadBannerToS3(req.file);
-            banner.image = s3Obj.url;
+            const uploaded = await uploadBannerToCloudinary(req.file);
+            banner.image = uploaded.url;
         } else if (req.body.image && req.body.image !== banner.image) {
             // If external image URL was provided
             banner.image = req.body.image;
@@ -373,13 +361,13 @@ router.post('/upload', authenticateAdmin, requireAdmin, upload.single('image'), 
             });
         }
 
-        const s3Obj = await uploadBannerToS3(req.file);
+        const uploaded = await uploadBannerToCloudinary(req.file);
 
         res.json({
             success: true,
             message: 'Banner image uploaded successfully',
-            url: s3Obj.url,
-            key: s3Obj.key,
+            url: uploaded.url,
+            key: uploaded.key,
             originalname: req.file.originalname,
             size: req.file.size
         });

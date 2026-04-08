@@ -1,10 +1,15 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { Types } from 'mongoose';
+import { Types, connection as mongooseConnection } from 'mongoose';
 
 import { PaymentModel } from '../models/payment';
 import { OrderModel } from '../models/order';
 import { AdminModel } from '../models/admin';
+import {
+  createOrder as createRazorpayOrder,
+  verifySignature as verifyRazorpaySignature,
+  refundPayment as razorpayRefundPayment,
+} from '../services/razorpayService';
 
 const jwt: any = require('jsonwebtoken');
 
@@ -96,7 +101,7 @@ function mapPaymentTransaction(p: any) {
 const initiateSchema = z.object({
   amount: z.number().finite().positive(),
   currency: z.string().min(1).default('INR'),
-  provider: z.enum(['phonepe', 'paytm', 'upi']).default('upi'),
+  provider: z.enum(['razorpay', 'paytm', 'upi']).default('razorpay'),
   orderId: z.string().optional(),
 });
 
@@ -195,74 +200,108 @@ router.post('/create-order', authenticateToken, async (req: AuthenticatedRequest
   }
 
   const { amount, currency, provider, orderId } = parsed.data;
-  const providerOrderId = makeProviderOrderId(provider);
+  const resolvedProvider = provider || 'razorpay';
 
   const orderObjectId = orderId && Types.ObjectId.isValid(orderId) ? new Types.ObjectId(orderId) : undefined;
 
-  const payment = await PaymentModel.create({
-    order: orderObjectId,
-    user: new Types.ObjectId(req.userId),
-    provider,
-    providerOrderId,
-    amount,
-    currency,
-    status: 'pending',
-    paymentMethod: provider,
-  });
+  try {
+    const razorpayOrder = await createRazorpayOrder({
+      amount,
+      currency,
+      receipt: makeProviderOrderId('razorpay'),
+    });
 
-  return res.json({
-    paymentId: String(payment._id),
-    provider,
-    amount,
-    currency,
-    providerOrderId,
-    status: payment.status,
-    supportedProviders: ['phonepe', 'paytm', 'upi'],
-    nextAction: {
-      type: provider === 'upi' ? 'upi_intent' : 'redirect_url',
-      url: `https://example.invalid/pay/${providerOrderId}`,
-    },
-    message: 'Payment initiation is mocked (providers not integrated yet).',
-  });
+    const razorpayOrderId = String((razorpayOrder as any)?.id || '');
+
+    const payment = await PaymentModel.create({
+      order: orderObjectId,
+      user: new Types.ObjectId(req.userId),
+      provider: 'razorpay',
+      providerOrderId: razorpayOrderId,
+      razorpayOrderId,
+      amount,
+      currency,
+      status: 'pending',
+      paymentMethod: 'razorpay',
+      metadata: { razorpayOrder },
+    });
+
+    return res.json({
+      success: true,
+      paymentId: String(payment._id),
+      provider: 'razorpay',
+      amount,
+      currency,
+      providerOrderId: razorpayOrderId,
+      razorpayOrderId,
+      status: payment.status,
+      paymentMethod: 'razorpay',
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+      nextAction: {
+        type: 'razorpay_checkout',
+        orderId: razorpayOrderId,
+        redirectUrl: '',
+      },
+      message: 'Razorpay order created successfully.',
+    });
+  } catch (e: any) {
+    console.error('Create order error:', e);
+    return res.status(500).json({ error: 'Failed to create Razorpay order', details: e?.message || String(e) });
+  }
 });
 
-// Payment initiation (PhonePe/Paytm/UPI) - mocked for now
+// Payment initiation (Razorpay)
 router.post('/initiate', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const parsed = initiateSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid body', issues: parsed.error.issues });
   }
 
-  const { amount, currency, provider, orderId } = parsed.data;
-  const providerOrderId = makeProviderOrderId(provider);
-
+  const { amount, currency, orderId } = parsed.data;
   const orderObjectId = orderId && Types.ObjectId.isValid(orderId) ? new Types.ObjectId(orderId) : undefined;
 
-  const payment = await PaymentModel.create({
-    order: orderObjectId,
-    user: new Types.ObjectId(req.userId),
-    provider,
-    providerOrderId,
-    amount,
-    currency,
-    status: 'pending',
-    paymentMethod: provider,
-  });
+  try {
+    const razorpayOrder = await createRazorpayOrder({
+      amount,
+      currency,
+      receipt: makeProviderOrderId('razorpay'),
+    });
 
-  return res.json({
-    paymentId: String(payment._id),
-    provider,
-    amount,
-    currency,
-    providerOrderId,
-    status: payment.status,
-    supportedProviders: ['phonepe', 'paytm', 'upi'],
-    nextAction: {
-      type: provider === 'upi' ? 'upi_intent' : 'redirect_url',
-      url: `https://example.invalid/pay/${providerOrderId}`,
-    },
-    message: 'Payment initiation is mocked (providers not integrated yet).',
-  });
+    const razorpayOrderId = String((razorpayOrder as any)?.id || '');
+
+    const payment = await PaymentModel.create({
+      order: orderObjectId,
+      user: new Types.ObjectId(req.userId),
+      provider: 'razorpay',
+      providerOrderId: razorpayOrderId,
+      razorpayOrderId,
+      amount,
+      currency,
+      status: 'pending',
+      paymentMethod: 'razorpay',
+      metadata: { razorpayOrder },
+    });
+
+    return res.json({
+      paymentId: String(payment._id),
+      provider: 'razorpay',
+      amount,
+      currency,
+      providerOrderId: razorpayOrderId,
+      razorpayOrderId,
+      status: payment.status,
+      paymentMethod: 'razorpay',
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+      nextAction: {
+        type: 'razorpay_checkout',
+        orderId: razorpayOrderId,
+      },
+      message: 'Razorpay order created successfully.',
+    });
+  } catch (e: any) {
+    console.error('Initiate payment error:', e);
+    return res.status(500).json({ error: 'Failed to initiate Razorpay payment', details: e?.message || String(e) });
+  }
 });
 
 // Payment verification - mocked for now
@@ -272,16 +311,46 @@ router.post('/verify', authenticateToken, async (req: AuthenticatedRequest, res:
     return res.status(400).json({ error: 'Invalid body', issues: parsed.error.issues });
   }
 
-  const { paymentId, status, providerPaymentId, providerSignature, orderData } = parsed.data;
+  const {
+    paymentId,
+    status,
+    providerPaymentId,
+    providerSignature,
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+    orderData,
+  } = parsed.data;
 
   const payment = await PaymentModel.findOne({ _id: paymentId, user: req.userId });
   if (!payment) {
     return res.status(404).json({ error: 'Payment not found' });
   }
 
+  if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
+    const valid = verifyRazorpaySignature({
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    });
+    if (!valid) {
+      return res.status(400).json({ error: 'Invalid Razorpay signature' });
+    }
+
+    payment.provider = 'razorpay';
+    payment.providerOrderId = razorpayOrderId;
+    payment.providerPaymentId = razorpayPaymentId;
+    payment.providerSignature = razorpaySignature;
+    payment.razorpayOrderId = razorpayOrderId;
+    payment.razorpayPaymentId = razorpayPaymentId;
+    payment.razorpaySignature = razorpaySignature;
+    payment.paymentMethod = 'razorpay';
+  } else {
+    if (providerPaymentId) payment.providerPaymentId = providerPaymentId;
+    if (providerSignature) payment.providerSignature = providerSignature;
+  }
+
   payment.status = status;
-  if (providerPaymentId) payment.providerPaymentId = providerPaymentId;
-  if (providerSignature) payment.providerSignature = providerSignature;
 
   if (status === 'completed') {
     // If caller provided orderData and this payment isn't linked yet, create and link the order.
@@ -308,7 +377,7 @@ router.post('/verify', authenticateToken, async (req: AuthenticatedRequest, res:
 
       // Adjust stock for payment order
       try {
-        const db = mongoose.connection.db;
+        const db = mongooseConnection.db;
         if (db) {
           const { adjustStockForOrderOnce } = require('./simple-orders');
           await adjustStockForOrderOnce(db, createdOrder._id, orderData.items);
@@ -325,12 +394,17 @@ router.post('/verify', authenticateToken, async (req: AuthenticatedRequest, res:
 
   await payment.save();
 
+  const orderNumber = payment.order
+    ? (await OrderModel.findById(payment.order).lean())?.orderNumber || undefined
+    : undefined;
+
   return res.json({
     paymentId: String(payment._id),
     status: payment.status,
     provider: payment.provider,
     orderId: payment.order ? String(payment.order) : undefined,
-    message: 'Payment verification is mocked (providers not integrated yet).',
+    orderNumber,
+    message: 'Payment verified successfully.',
   });
 });
 
@@ -436,12 +510,124 @@ router.get('/:paymentId/receipt', authenticateAnyUserOrAdmin, async (req: AnyAut
   }
 });
 
-// Provider webhook/callback endpoint - to be implemented next
-router.post('/webhook/:provider', async (req: Request, res: Response) => {
-  const provider = String(req.params.provider || '').toLowerCase();
-  return res.status(501).json({
-    error: 'Webhooks not implemented yet',
-    provider,
+// Razorpay webhook endpoint
+router.post('/webhook/razorpay', async (req: Request, res: Response) => {
+  try {
+    const webhookSignature = String(req.headers['x-razorpay-signature'] || '').trim();
+    if (!webhookSignature) {
+      return res.status(400).json({ success: false, message: 'Missing x-razorpay-signature header' });
+    }
+
+    let payload = req.body;
+    let payloadString = '';
+
+    if (Buffer.isBuffer(req.body)) {
+      payloadString = req.body.toString('utf8');
+      try {
+        payload = JSON.parse(payloadString);
+      } catch (e) {
+        console.error('Invalid JSON payload for Razorpay webhook:', e);
+        return res.status(400).json({ success: false, message: 'Invalid JSON payload' });
+      }
+    } else {
+      payloadString = JSON.stringify(payload);
+    }
+
+    const expectedSignature = require('crypto')
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+      .update(payloadString)
+      .digest('hex');
+
+    if (webhookSignature !== expectedSignature) {
+      console.error('Razorpay webhook signature mismatch');
+      return res.status(401).json({ success: false, message: 'Invalid webhook signature' });
+    }
+
+    const event = String(payload.event || '').trim();
+    const entity = payload.payload?.payment?.entity || {};
+    const razorpayOrderId = String(entity.order_id || '');
+    const razorpayPaymentId = String(entity.id || '');
+    const status = String(entity.status || '').toLowerCase();
+
+    if (!razorpayOrderId || !razorpayPaymentId) {
+      return res.status(400).json({ success: false, message: 'Missing payment/order id' });
+    }
+
+    const payment = await PaymentModel.findOne({ razorpayOrderId });
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    if (event === 'payment.captured' || status === 'captured') {
+      payment.status = 'completed';
+      payment.providerStatus = 'captured';
+      payment.paidAtIso = payment.paidAtIso || new Date().toISOString();
+    } else if (event === 'payment.failed' || status === 'failed') {
+      payment.status = 'failed';
+      payment.providerStatus = 'failed';
+    } else if (event === 'payment.authorized' || status === 'authorized') {
+      payment.status = 'processing';
+      payment.providerStatus = 'authorized';
+    }
+
+    payment.razorpayPaymentId = razorpayPaymentId;
+    payment.razorpaySignature = webhookSignature;
+    payment.providerPaymentId = razorpayPaymentId;
+    payment.providerSignature = webhookSignature;
+    payment.updatedAt = new Date();
+
+    await payment.save();
+
+    return res.status(200).json({ success: true, event, razorpayOrderId, razorpayPaymentId });
+  } catch (e: any) {
+    console.error('Razorpay webhook error:', e);
+    return res.status(500).json({ success: false, message: 'Webhook handling failed', error: e?.message || String(e) });
+  }
+});
+
+// GET /api/payments/status/:paymentId - Check payment status for polling
+router.get('/status/:paymentId', async (req: Request, res: Response) => {
+  try {
+    const { paymentId } = req.params;
+    
+    if (!paymentId) {
+      return res.status(400).json({ success: false, message: 'Payment ID is required' });
+    }
+
+    const payment = await PaymentModel.findById(paymentId).lean();
+    
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        paymentId: payment._id,
+        status: payment.status,
+        providerStatus: payment.providerStatus,
+        razorpayOrderId: payment.razorpayOrderId,
+        razorpayPaymentId: payment.razorpayPaymentId,
+        amount: payment.amount,
+        currency: payment.currency,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt,
+      }
+    });
+  } catch (e: any) {
+    console.error('Payment status error:', e);
+    return res.status(500).json({ success: false, message: 'Failed to get payment status', error: e?.message || String(e) });
+  }
+});
+
+// GET /api/payments/methods
+router.get('/methods', async (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    data: [
+      { id: 'razorpay', type: 'razorpay', name: 'Razorpay', icon: '💳', enabled: true },
+      { id: 'upi', type: 'upi', name: 'UPI', icon: '🔗', enabled: true },
+    ],
   });
 });
 

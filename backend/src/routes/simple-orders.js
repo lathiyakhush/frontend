@@ -13,8 +13,10 @@ const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_BASE_URL = CLOUDINARY_CLOUD_NAME
+  ? `https://${CLOUDINARY_CLOUD_NAME}.res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`
+  : '';
 
 function normalizeStatus(raw) {
   const base = String(raw ?? '').trim().toLowerCase();
@@ -442,8 +444,9 @@ function toAbsoluteUrl(req, url) {
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
     return `${proto}://${req.get('host')}${value}`;
   }
-  if (/^uploads\//i.test(value) && AWS_REGION && AWS_S3_BUCKET) {
-    return `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${value}`;
+  if (/^uploads\//i.test(value) && CLOUDINARY_BASE_URL) {
+    const normalized = value.replace(/^\/?uploads\//i, '');
+    return `${CLOUDINARY_BASE_URL}/${normalized}`;
   }
   return value;
 }
@@ -668,10 +671,11 @@ router.post('/:id/cancel', async (req, res) => {
 
     let refundRequestDoc = null;
     try {
-      const isPhonePePrepaid = String(order?.paymentMethod || '').toLowerCase() === 'phonepe';
+      const paymentMethod = String(order?.paymentMethod || '').toLowerCase();
       const rawOrderStatus = String(order?.status || '').trim().toLowerCase();
-      if (isPhonePePrepaid && rawOrderStatus === 'paid') {
-        const payment = await db.collection('payments').findOne({ order: _id, user: uid, provider: 'phonepe', status: 'completed' });
+      const isPrepaid = ['razorpay', 'paytm', 'upi'].includes(paymentMethod);
+      if (isPrepaid && rawOrderStatus === 'paid') {
+        const payment = await db.collection('payments').findOne({ order: _id, user: uid, provider: paymentMethod, status: 'completed' });
         if (payment) {
           const existing = await db.collection('refund_requests').findOne({ orderId: String(_id), paymentId: String(payment._id) });
           if (!existing) {

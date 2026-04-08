@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { Payment } = require('../models/payment');
 const { Order } = require('../models/order');
 const { UserModel } = require('../models/user');
-const { initiatePhonePeRefund } = require('../services/phonepeRefund');
+const { refundPayment } = require('../services/razorpayService');
 const { validateTransition } = require('../middleware/stateMachine');
 const domainEvents = require('../services/domainEvents');
 
@@ -45,10 +45,10 @@ async function processDueRefunds() {
           throw new Error(e.message || 'Invalid payment transition');
         }
 
-        const refundResult = await initiatePhonePeRefund({
-          payment,
+        const refundResult = await refundPayment({
+          razorpayPaymentId: String(payment.razorpayPaymentId || payment.providerPaymentId),
           amount: Number(payment.amount),
-          reason: 'Auto refund after admin approval',
+          notes: { reason: 'Auto refund after admin approval', orderId: String(payment.order || '') },
         });
 
         const nowIso = new Date().toISOString();
@@ -63,7 +63,7 @@ async function processDueRefunds() {
             },
             $push: {
               eventHistory: {
-                provider: 'phonepe',
+                provider: 'razorpay',
                 event: 'refund_initiated',
                 state: 'PENDING',
                 at: nowIso,

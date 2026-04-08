@@ -16,7 +16,7 @@ function authHeaders() {
 
 export interface PaymentMethod {
   id: string;
-  type: 'phonepe' | 'paytm' | 'googlepay' | 'upi' | 'card' | 'netbanking';
+  type: 'razorpay' | 'phonepe' | 'paytm' | 'googlepay' | 'upi' | 'card' | 'netbanking';
   name: string;
   icon: string;
   enabled: boolean;
@@ -106,17 +106,22 @@ export const paymentAPI = {
     }
   },
 
-  // Process PhonePe payment
-  processPhonePePayment: async (paymentData: CreatePaymentRequest) => {
+  // Process Razorpay payment
+  processRazorpayPayment: async (paymentData: CreatePaymentRequest) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/payments/phonepe`, paymentData, {
+      const response = await axios.post(`${API_BASE_URL}/payments/initiate`, paymentData, {
         headers: authHeaders(),
       });
       return response.data;
     } catch (error) {
-      console.error('Error processing PhonePe payment:', error);
+      console.error('Error processing Razorpay payment:', error);
       throw error;
     }
+  },
+
+  // Deprecated: PhonePe is removed. Use Razorpay
+  processPhonePePayment: async (_paymentData: CreatePaymentRequest) => {
+    throw new Error('PhonePe integration has been removed. Use Razorpay');
   },
 
   // Process Paytm payment

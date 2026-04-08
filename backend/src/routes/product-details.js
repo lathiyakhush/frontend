@@ -4,19 +4,25 @@ const { ProductModel } = require('../models/product');
 
 const router = express.Router();
 
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_BASE_URL = CLOUDINARY_CLOUD_NAME
+  ? `https://${CLOUDINARY_CLOUD_NAME}.res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`
+  : '';
 
 function toAbsoluteUrl(req, url) {
   const value = String(url ?? '').trim();
   if (!value) return '';
   if (/^https?:\/\//i.test(value)) return value;
+
+  const normalizedUploadsPath = value.startsWith('/uploads/') ? value.slice(1) : value;
+  if (/^uploads\//i.test(normalizedUploadsPath) && CLOUDINARY_BASE_URL) {
+    const sanitized = normalizedUploadsPath.replace(/^uploads\//i, '');
+    return `${CLOUDINARY_BASE_URL}/${sanitized}`;
+  }
+
   if (value.startsWith('/')) {
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
     return `${proto}://${req.get('host')}${value}`;
-  }
-  if (/^uploads\//i.test(value) && AWS_REGION && AWS_S3_BUCKET) {
-    return `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${value}`;
   }
   return value;
 }

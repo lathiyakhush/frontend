@@ -47,7 +47,7 @@ const PaymentsPage = () => {
     if (!loaded.methods || loaded.methods.length === 0) {
       loaded.methods = [
         { id: '1', name: 'Visa/Mastercard', type: 'card', enabled: true, details: '**** 4242' },
-        { id: '2', name: 'Google Pay', type: 'upi', enabled: true, details: 'store@upi' },
+        { id: '2', name: 'Google Pay', type: 'upi', enabled: true, details: 'harshildobariya070@okicici' },
       ];
       setPaymentSettings(loaded);
     }

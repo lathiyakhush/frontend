@@ -189,13 +189,15 @@ function releaseCronLock() {
 }
 
 // ========== MAIN CRON JOB ==========
+// DISABLED: Account locked due to incorrect credentials
+// Re-enable after updating SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD in .env
+/*
 cron.schedule(CONFIG.CRON_INTERVAL, async () => {
   if (!acquireCronLock()) return;
   
   const startTime = Date.now();
   
   try {
-    // Fetch only pending orders (optimization: exclude final states)
     const orders = await Order.find({
       status: { $nin: ['delivered', 'cancelled', 'returned'] }
     }).select('orderNumber status shiprocket').sort({ updatedAt: 1 }).limit(100);
@@ -211,31 +213,26 @@ cron.schedule(CONFIG.CRON_INTERVAL, async () => {
 
     for (const order of orders) {
       try {
-        // Rate limit check
         if (!checkRateLimit(`order:${order._id}`)) {
           skipped++;
           continue;
         }
         
-        // Find shipment
         const shipment = await Shipment.findOne({ order: order._id })
           .select('awbNumber shiprocketOrderId status');
         
         let trackingResult = null;
         
-        // Method 1: AWB tracking
         if (shipment?.awbNumber) {
           if (checkRateLimit(`awb:${shipment.awbNumber}`)) {
             trackingResult = await getStatusByAWB(shipment.awbNumber);
           }
         }
         
-        // Method 2: Order ID fallback
         if (!trackingResult && shipment?.shiprocketOrderId) {
           if (checkRateLimit(`oid:${shipment.shiprocketOrderId}`)) {
             trackingResult = await getStatusByOrderId(shipment.shiprocketOrderId);
             
-            // Auto-discover AWB
             if (trackingResult?.awbCode && !shipment.awbNumber) {
               await Shipment.updateOne(
                 { _id: shipment._id },
@@ -253,12 +250,10 @@ cron.schedule(CONFIG.CRON_INTERVAL, async () => {
         
         const normalizedStatus = normalizeStatus(trackingResult.status);
         
-        // Skip if no change
         if (normalizedStatus === order.status) {
           continue;
         }
         
-        // Update order
         await Order.updateOne(
           { _id: order._id },
           {
@@ -278,7 +273,6 @@ cron.schedule(CONFIG.CRON_INTERVAL, async () => {
           }
         );
         
-        // Update shipment
         if (shipment) {
           await Shipment.updateOne(
             { _id: shipment._id },
@@ -309,5 +303,6 @@ cron.schedule(CONFIG.CRON_INTERVAL, async () => {
     releaseCronLock();
   }
 });
+*/
 
-console.log('[CRON] Production Shiprocket sync initialized');
+console.log('[CRON] Production Shiprocket sync DISABLED - Update credentials in .env to re-enable');

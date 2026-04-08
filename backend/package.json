@@ -1,7 +1,7 @@
 {
-  "name": "trozzy-backend",
+  "name": "ikolyra-backend",
   "version": "1.0.0",
-  "description": "TROZZY Backend API Server",
+  "description": "Ikolyra Backend API Server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -18,9 +18,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.470.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.9.0",
     "cors": "^2.8.5",
     "disposable-email-domains": "^1.0.0",
     "dotenv": "^16.3.1",
@@ -34,7 +34,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "pdfkit": "^0.15.0",
-    "pg-sdk-node": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-sdk-node/releases/v2/phonepe-pg-sdk-node-2.0.3.tgz",
+    "razorpay": "^2.9.6",
     "socket.io": "^4.7.5",
     "zod": "^3.22.4"
   },

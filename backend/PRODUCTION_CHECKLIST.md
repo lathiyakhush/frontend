@@ -1,14 +1,10 @@
-# 🚀 Production Readiness Checklist: PhonePe + Shiprocket System
+# 🚀 Production Readiness Checklist: Razorpay + Shiprocket System
 
 ## Environment Variables
-- [ ] PHONEPE_MERCHANT_ID (from PhonePe dashboard)
-- [ ] PHONEPE_BASE_URL (sandbox: https://api-preprod.phonepe.com/apis/pg-sandbox)
-- [ ] PHONEPE_SALT_KEY (from PhonePe dashboard)
-- [ ] PHONEPE_SALT_INDEX (usually 1)
-- [ ] PHONEPE_WEBHOOK_USERNAME (basic auth for webhooks)
-- [ ] PHONEPE_WEBHOOK_PASSWORD (basic auth for webhooks)
-- [ ] PHONEPE_CALLBACK_URL (https://yourdomain.com/api/payments/webhook/phonepe)
-- [ ] PHONEPE_REDIRECT_URL (https://yourdomain.com/orders)
+- [ ] RAZORPAY_KEY_ID (from Razorpay dashboard)
+- [ ] RAZORPAY_KEY_SECRET (from Razorpay dashboard)
+- [ ] RAZORPAY_WEBHOOK_SECRET (configure in Razorpay webhook settings)
+- [ ] RAZORPAY_WEBHOOK_URL (https://yourdomain.com/api/payments/webhook/razorpay)
 - [ ] SHIPROCKET_EMAIL (Shiprocket account email)
 - [ ] SHIPROCKET_PASSWORD (Shiprocket account password)
 - [ ] SHIPROCKET_WEBHOOK_SECRET (generate strong secret)
@@ -16,10 +12,10 @@
 - [ ] MONGODB_URI (production MongoDB Atlas)
 
 ## Webhook Configuration
-- [ ] PhonePe webhook URL configured in PhonePe dashboard
+- [ ] Razorpay webhook URL configured in Razorpay dashboard
 - [ ] Shiprocket webhook URL configured in Shiprocket panel
 - [ ] Webhook endpoints publicly reachable (HTTPS in production)
-- [ ] Firewall allows inbound traffic from PhonePe/Shiprocket IPs
+- [ ] Firewall allows inbound traffic from Shiprocket IPs
 
 ## Database
 - [ ] MongoDB indexes: payments.providerOrderId, orders.orderNumber, shipments.awbNumber

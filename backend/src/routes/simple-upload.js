@@ -3,13 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { authenticateAdmin, requireAdmin } = require('../middleware/adminAuth');
-
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
-
-const s3 = new S3Client({ region: AWS_REGION });
+const { uploadImage: uploadImageToCloudinary } = require('../services/cloudinaryService');
 
 const UploadSchema = new mongoose.Schema(
     {
@@ -105,13 +100,6 @@ const upload = multer({
 
 router.post('/admin-image', authenticateAdmin, requireAdmin, upload.single('image'), async (req, res) => {
     try {
-        if (!AWS_REGION || !AWS_S3_BUCKET) {
-            return res.status(500).json({
-                success: false,
-                message: 'Missing AWS configuration (AWS_REGION, AWS_S3_BUCKET)'
-            });
-        }
-
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -119,28 +107,20 @@ router.post('/admin-image', authenticateAdmin, requireAdmin, upload.single('imag
             });
         }
 
-        const ext = (req.file.originalname || '').split('.').pop() || 'bin';
-        const random = crypto.randomBytes(12).toString('hex');
         const folder = String(req.query?.folder ?? '').trim();
         const folderSafe = folder && /^[a-zA-Z0-9_-]+$/.test(folder) ? folder : 'misc';
-        const key = `uploads/${folderSafe}/${Date.now()}-${random}.${ext}`;
 
-        await s3.send(
-            new PutObjectCommand({
-                Bucket: AWS_S3_BUCKET,
-                Key: key,
-                Body: req.file.buffer,
-                ContentType: req.file.mimetype,
-            })
-        );
-
-        const imageUrl = `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+        const uploadResult = await uploadImageToCloudinary({
+            buffer: req.file.buffer,
+            filename: req.file.originalname,
+            folder: `uploads/${folderSafe}`,
+        });
 
         const saved = await Upload.create({
-            key,
-            url: imageUrl,
-            bucket: AWS_S3_BUCKET,
-            region: AWS_REGION,
+            key: uploadResult.publicId,
+            url: uploadResult.url,
+            bucket: 'cloudinary',
+            region: 'cloud',
             contentType: req.file.mimetype,
             size: req.file.size,
             originalName: req.file.originalname,
@@ -170,13 +150,6 @@ router.post('/admin-image', authenticateAdmin, requireAdmin, upload.single('imag
 // POST /api/upload/image - Upload image
 router.post('/image', upload.single('image'), async (req, res) => {
     try {
-        if (!AWS_REGION || !AWS_S3_BUCKET) {
-            return res.status(500).json({
-                success: false,
-                message: 'Missing AWS configuration (AWS_REGION, AWS_S3_BUCKET)'
-            });
-        }
-
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -184,28 +157,20 @@ router.post('/image', upload.single('image'), async (req, res) => {
             });
         }
 
-        const ext = (req.file.originalname || '').split('.').pop() || 'bin';
-        const random = crypto.randomBytes(12).toString('hex');
         const folder = String(req.query?.folder ?? '').trim();
         const folderSafe = folder && /^[a-zA-Z0-9_-]+$/.test(folder) ? folder : 'misc';
-        const key = `uploads/${folderSafe}/${Date.now()}-${random}.${ext}`;
 
-        await s3.send(
-            new PutObjectCommand({
-                Bucket: AWS_S3_BUCKET,
-                Key: key,
-                Body: req.file.buffer,
-                ContentType: req.file.mimetype,
-            })
-        );
-
-        const imageUrl = `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+        const uploadResult = await uploadImageToCloudinary({
+            buffer: req.file.buffer,
+            filename: req.file.originalname,
+            folder: `uploads/${folderSafe}`,
+        });
 
         const saved = await Upload.create({
-            key,
-            url: imageUrl,
-            bucket: AWS_S3_BUCKET,
-            region: AWS_REGION,
+            key: uploadResult.publicId,
+            url: uploadResult.url,
+            bucket: 'cloudinary',
+            region: 'cloud',
             contentType: req.file.mimetype,
             size: req.file.size,
             originalName: req.file.originalname,
@@ -236,7 +201,7 @@ router.post('/image', upload.single('image'), async (req, res) => {
 router.get('/uploads/:filename', (req, res) => {
     res.status(410).json({
         success: false,
-        message: 'Local file serving is disabled. Use the returned S3 url/key.'
+        message: 'Local file serving is disabled. Use the returned Cloudinary URL.'
     });
 });
 

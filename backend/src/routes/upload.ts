@@ -3,9 +3,11 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
+const { uploadImage: uploadImageToCloudinary } = require('../services/cloudinaryService');
+
 const router = express.Router();
 
-// Ensure uploads directory exists
+// Ensure uploads directory exists for backward compatibility
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 const categoriesUploadDir = path.join(uploadsDir, 'categories');
 
@@ -29,22 +31,8 @@ const ensureUploadDirectories = () => {
 // Initialize directories on module load
 ensureUploadDirectories();
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Ensure categories directory exists before saving
-    if (!fs.existsSync(categoriesUploadDir)) {
-      fs.mkdirSync(categoriesUploadDir, { recursive: true });
-    }
-    cb(null, categoriesUploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `category-${uniqueSuffix}${ext}`);
-  }
-});
+// Configure multer for image uploads (memory storage for Cloudinary)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Accept only image files
@@ -70,36 +58,27 @@ const upload = multer({
 });
 
 // POST /api/upload/image - Upload category image
-router.post('/image', upload.single('image'), (req, res) => {
+router.post('/image', upload.single('image'), async (req, res) => {
   try {
-    // Double-check directory exists before processing
-    if (!fs.existsSync(categoriesUploadDir)) {
-      fs.mkdirSync(categoriesUploadDir, { recursive: true });
-      console.log('Created categories directory on upload:', categoriesUploadDir);
-    }
-
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Return the URL that can be used to access the uploaded file
-    const imageUrl = `/uploads/categories/${req.file.filename}`;
-    
-    console.log('Image uploaded successfully:', {
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size,
-      mimetype: req.file.mimetype
+    const folder = String(req.query?.folder ?? 'categories').trim() || 'categories';
+    const uploadResult = await uploadImageToCloudinary({
+      buffer: req.file.buffer,
+      filename: req.file.originalname,
+      folder: `uploads/${folder}`,
     });
-    
-    res.json({
+
+    return res.json({
       success: true,
-      url: imageUrl,
-      filename: req.file.filename
+      url: uploadResult.url,
+      key: uploadResult.publicId,
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to upload image' });
+    res.status(500).json({ error: 'Failed to upload image', details: error?.message || error });
   }
 });
 

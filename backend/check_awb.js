@@ -3,7 +3,7 @@ require('dotenv').config();
 
 async function checkAWB() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://cluster0.xxxxx.mongodb.net/trozzi');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://cluster0.xxxxx.mongodb.net/ikolyra');
     const db = mongoose.connection.db;
     
     // Check latest orders

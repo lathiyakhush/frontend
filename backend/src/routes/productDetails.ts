@@ -5,8 +5,10 @@ import { Types } from "mongoose";
 
 const router = Router();
 
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_BASE_URL = CLOUDINARY_CLOUD_NAME
+  ? `https://${CLOUDINARY_CLOUD_NAME}.res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`
+  : '';
 
 function toAbsoluteUrl(req: Request, url: unknown) {
   const value = String(url ?? "").trim();
@@ -16,8 +18,9 @@ function toAbsoluteUrl(req: Request, url: unknown) {
     const proto = (req.headers["x-forwarded-proto"] as string | undefined) || req.protocol;
     return `${proto}://${req.get("host")}${value}`;
   }
-  if (/^uploads\//i.test(value) && AWS_REGION && AWS_S3_BUCKET) {
-    return `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${value}`;
+  if (/^uploads\//i.test(value) && CLOUDINARY_BASE_URL) {
+    const normalized = value.replace(/^\/?uploads\//i, '');
+    return `${CLOUDINARY_BASE_URL}/${normalized}`;
   }
   return value;
 }

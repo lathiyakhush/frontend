@@ -385,7 +385,7 @@ router.post('/admin/orders/:orderId/deliver', async (req, res) => {
   }
 });
 
-// Admin: trigger PhonePe refund
+// Admin: trigger Razorpay refund
 router.post('/admin/payments/:paymentId/refund', async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -406,12 +406,13 @@ router.post('/admin/payments/:paymentId/refund', async (req, res) => {
       return res.status(400).json({ success: false, message: e.message });
     }
 
-    // Initiate PhonePe refund
-    const { initiatePhonePeRefund } = require('../services/phonepeRefund');
-    const refundResult = await initiatePhonePeRefund({
-      payment,
+    // Initiate Razorpay refund
+    const { refundPayment: initiateRazorpayRefund } = require('../services/razorpayService');
+
+    const refundResult = await initiateRazorpayRefund({
+      razorpayPaymentId: payment.razorpayPaymentId || String(payment.providerPaymentId || ''),
       amount: Number(amount) || Number(payment.amount),
-      reason: reason || 'Admin refund',
+      notes: { reason: reason || 'Admin refund' },
     });
 
     const now = new Date().toISOString();
@@ -424,7 +425,7 @@ router.post('/admin/payments/:paymentId/refund', async (req, res) => {
           updatedAt: new Date(),
         },
         $push: {
-          eventHistory: { provider: 'phonepe', event: 'refund_initiated', state: 'PENDING', at: now, raw: refundResult },
+          eventHistory: { provider: 'razorpay', event: 'refund_initiated', state: 'PENDING', at: now, raw: refundResult },
         },
       }
     );
@@ -448,7 +449,7 @@ router.post('/admin/payments/:paymentId/refund', async (req, res) => {
       const userId = payment.user ? String(payment.user) : '';
       const payload = {
         id: String(payment._id),
-        provider: 'phonepe',
+        provider: 'razorpay',
         providerOrderId: payment.providerOrderId,
         status: 'refunded',
         amount: Number(amount) || Number(payment.amount),

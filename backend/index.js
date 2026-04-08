@@ -9,6 +9,25 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+function validateRequiredEnv() {
+  const requiredVars = [
+    'MONGODB_URI',
+    'JWT_SECRET',
+    'RAZORPAY_KEY_ID',
+    'RAZORPAY_KEY_SECRET',
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET',
+  ];
+
+  const missing = requiredVars.filter((key) => !process.env[key] || String(process.env[key]).trim() === '');
+  if (missing.length) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
+validateRequiredEnv();
+
 // Import routes
 const reviewsRouter = require('./src/routes/simple-reviews');
 const productsRouter = require('./src/routes/simple-products');
@@ -135,8 +154,8 @@ app.use('/api/shipping/webhook/shiprocket', express.raw({ type: 'application/jso
 app.use('/api/shiprocket/webhook', express.raw({ type: 'application/json' }), shiprocketWebhookRouter);
 // Dynamic webhook path from env (recommended for production)
 app.use(SHIPROCKET_WEBHOOK_PATH, express.raw({ type: 'application/json' }), shiprocketWebhookRouter);
-// PhonePe webhook needs raw body for signature/authorization verification.
-app.use('/api/payments/webhook/phonepe', express.raw({ type: 'application/json' }));
+// Razorpay webhook needs raw body for signature verification.
+app.use('/api/payments/webhook/razorpay', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/admin', adminOverridesRouter);
@@ -255,7 +274,7 @@ const startServer = (port, attempt = 0) => {
 
   const server = httpServer.listen(port, '0.0.0.0', () => {
     activePort = port;
-    console.log(`🚀 TROZZY Backend Server running on port ${port}`);
+    console.log(`🚀 IKOLYRA Backend Server running on port ${port}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 

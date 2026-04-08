@@ -208,7 +208,7 @@ export function AppSidebar({ open, onOpenChange }: AppSidebarProps) {
             )}
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="font-bold text-lg text-sidebar-foreground">Trozzi</span>
+            <span className="font-bold text-lg text-sidebar-foreground">Ikolyra</span>
             <span className="text-xs text-sidebar-muted">Admin Panel</span>
           </div>
         </div>

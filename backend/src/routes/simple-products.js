@@ -8,17 +8,20 @@ const { authenticateAny } = require('../middleware/authAny');
 const { ProductModel } = require('../models/product');
 const { Order } = require('../models/order');
 
-const AWS_REGION = process.env.AWS_REGION;
-const AWS_S3_BUCKET = process.env.AWS_S3_BUCKET;
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_BASE_URL = CLOUDINARY_CLOUD_NAME
+  ? `https://${CLOUDINARY_CLOUD_NAME}.res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`
+  : '';
 
 function toAbsoluteUrl(req, url) {
     const value = String(url ?? '').trim();
     if (!value) return '';
     if (/^https?:\/\//i.test(value)) return value;
-    // Support stored paths like "uploads/..." and "/uploads/..." for S3
+    // Support stored paths like "uploads/..." and "/uploads/..." for Cloudinary
     const normalizedUploadsPath = value.startsWith('/uploads/') ? value.slice(1) : value;
-    if (/^uploads\//i.test(normalizedUploadsPath) && AWS_REGION && AWS_S3_BUCKET) {
-        return `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${normalizedUploadsPath}`;
+    if (/^uploads\//i.test(normalizedUploadsPath) && CLOUDINARY_BASE_URL) {
+        const sanitized = normalizedUploadsPath.replace(/^uploads\//i, '');
+        return `${CLOUDINARY_BASE_URL}/${sanitized}`;
     }
     if (value.startsWith('/')) {
         const proto = req.headers['x-forwarded-proto'] || req.protocol;

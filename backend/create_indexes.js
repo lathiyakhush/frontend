@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 
 async function createIndexes() {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/trozzi';
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ikolyra';
     await mongoose.connect(mongoUri);
     const db = mongoose.connection.db;
     

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 async function testUpdate() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://cluster0.xxxxx.mongodb.net/trozzi');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://cluster0.xxxxx.mongodb.net/Ikolyra');
     const db = mongoose.connection.db;
     
     console.log('=== Testing Manual Database Update ===');
